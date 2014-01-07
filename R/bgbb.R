@@ -82,8 +82,11 @@ bgbb.EstimateParameters <- function(rf.matrix, par.start = c(1, 1, 1,
         return(-1 * bgbb.rf.matrix.LL(params, rf.matrix))
     }
     logparams <- log(par.start)
-    results <- optim(logparams, bgbb.eLL, rf.matrix = rf.matrix, max.param.value = max.param.value, 
-        method = "L-BFGS-B")
+    ##results <- optim(logparams, bgbb.eLL, rf.matrix = rf.matrix, max.param.value = max.param.value, 
+    ##    method = "L-BFGS-B")
+    results <- optimx(logparams, bgbb.eLL, rf.matrix = rf.matrix, max.param.value = max.param.value,
+                      lower=rep(1e-4, 4), method = "bobyqa")
+
     estimated.params <- exp(results$par)
     estimated.params[estimated.params > max.param.value] <- max.param.value
     return(estimated.params)

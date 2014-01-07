@@ -3,6 +3,62 @@
 
 library(gsl)
 
+# do the log exp sum trick on the term:
+# log(exp(part2) + exp(part3))
+pnbd.LL2 <- function (params, x, t.x, T.cal) 
+{
+  max.length <- max(length(x), length(t.x), length(T.cal))
+  
+  if (max.length%%length(x)) 
+    warning("Maximum vector length not a multiple of the length of x")
+  if (max.length%%length(t.x)) 
+    warning("Maximum vector length not a multiple of the length of t.x")
+  if (max.length%%length(T.cal)) 
+    warning("Maximum vector length not a multiple of the length of T.cal")
+  
+  dc.check.model.params(c("r", "alpha", "s", "beta"), params, "pnbd.LL")
+  
+  if (any(x < 0) || !is.numeric(x)) 
+    stop("x must be numeric and may not contain negative numbers.")
+  if (any(t.x < 0) || !is.numeric(t.x)) 
+    stop("t.x must be numeric and may not contain negative numbers.")
+  if (any(T.cal < 0) || !is.numeric(T.cal)) 
+    stop("T.cal must be numeric and may not contain negative numbers.")
+  
+  x <- rep(x, length.out = max.length)
+  t.x <- rep(t.x, length.out = max.length)
+  T.cal <- rep(T.cal, length.out = max.length)
+  
+  r <- params[1]
+  alpha <- params[2]
+  s <- params[3]
+  beta <- params[4]
+  
+  maxab <- max(alpha, beta)
+  absab <- abs(alpha - beta)
+  param2 <- s + 1
+  
+  if (alpha < beta) {
+    param2 <- r + x
+  }
+  part1 <- r * log(alpha) + s * log(beta) - lgamma(r) + lgamma(r + x)
+  part2 <- -(r + x) * log(alpha + T.cal) - s * log(beta + T.cal)
+  if (absab == 0) {    
+    part2_times_F1_min_F2 <- ( (alpha+T.cal)/(maxab+t.x) )^(r+x) * (beta+T.cal)^s / 
+      ((maxab+t.x)^s) -
+      ( (alpha+T.cal)/(maxab+T.cal) )^(r+x) * (beta+T.cal)^s / 
+      ((maxab+t.x)^s) 
+  } else {
+    part2_times_F1_min_F2 = hyperg_2F1(r+s+x, param2, r+s+x+1, absab / (maxab+t.x)) * 
+      ( (alpha+T.cal)/(maxab+t.x) )^(r+x) * (beta+T.cal)^s / 
+      ((maxab+t.x)^s) -
+      hyperg_2F1(r+s+x, param2, r+s+x+1, absab / (maxab+T.cal)) * 
+      ( (alpha+T.cal)/(maxab+T.cal) )^(r+x) * (beta+T.cal)^s / 
+      ((maxab+t.x)^s)
+  }
+  return(part1 + part2 + log(1+(s/(r+s+x))*part2_times_F1_min_F2) )
+}
+
 pnbd.cbs.LL <- function(params, cal.cbs) {
     
     dc.check.model.params(c("r", "alpha", "s", "beta"), params, "pnbd.cbs.LL")
